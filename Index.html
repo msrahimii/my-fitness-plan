@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Beginner Fitness Plan</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chosen Palette: Desert Calm -->
+    <!-- Application Structure Plan: The SPA is structured as a personal dashboard. It starts with a high-level "Client Overview" (stats, goals, weekly focus chart) to ground the user. The core of the app is the "Weekly Training Plan," which uses an interactive tabbed navigation (Day 1-5). This design was chosen to break down the 5-day plan into manageable, focused daily tasks, which is crucial for a beginner to prevent overwhelm. Clicking a day reveals the full workout. Each exercise is a "card" with a "Show Details" toggle. This toggle reveals in-depth instructions (form, weight, rationale) and a diagram placeholder, fulfilling the "very detailed" requirement without cluttering the primary UI. The user flow is: 1. Review Overview. 2. Select a Day. 3. Perform exercises, opening details as needed. 4. Review Progression principles. This is a guided, non-linear flow focused on daily execution. -->
+    <!-- Visualization & Content Choices:
+        - Report Info: User Profile (Age, Wt, Ht) & Goals -> Goal: Inform -> Viz/Presentation: HTML list -> Interaction: None -> Justification: Clear, scannable display of the client's "source data."
+        - Report Info: 5-Day Plan Structure (3x Strength, 2x Cardio) -> Goal: Inform/Summarize -> Viz/Presentation: Doughnut Chart (Chart.js) -> Interaction: Hover (tooltips) -> Justification: Visually summarizes the weekly training split, reinforcing the plan's structure and focus.
+        - Report Info: 5-Day Detailed Plan -> Goal: Organize/Navigate -> Viz/Presentation: HTML Tabbed Navigation -> Interaction: Click (swaps content) -> Justification: Main app navigation. Allows user to select their current day's plan easily, separating the 5 workouts into distinct, non-overwhelming sections.
+        - Report Info: Detailed Exercises (Sets, Reps, Weight, Form) -> Goal: Instruct/Detail -> Viz/Presentation: HTML "Cards" with JS Toggle (show/hide) for text + [Image of X] tags -> Interaction: Click to expand/collapse -> Justification: Hides complex details by default for a clean UI. Provides "very detailed" instructions, rationale, and visual aid placeholders on user demand, which is perfect for a beginner.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #FDFBF6;
+            color: #3C3633;
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+            background-color: #F0EBE3;
+            border-bottom: 4px solid transparent;
+        }
+        .nav-button.active {
+            background-color: #FFFFFF;
+            color: #7A9D54;
+            border-bottom-color: #7A9D54;
+        }
+        .exercise-card {
+            background-color: #FFFFFF;
+            border: 1px solid #E0DBCF;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        .exercise-card:hover {
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        }
+        .details-button {
+            background-color: #F0EBE3;
+            transition: background-color 0.3s ease;
+        }
+        .details-button:hover {
+            background-color: #E0DBCF;
+        }
+        .details-content {
+            background-color: #FDFBF6;
+            border-top: 1px dashed #E0DBCF;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 300px;
+            height: 300px;
+            max-height: 300px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+    </style>
+</head>
+<body class="antialiased">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-6xl">
+
+        <header class="text-center mb-8 md:mb-12">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#7A9D54]">Your 5-Day Training Plan</h1>
+            <p class="text-lg text-gray-600 mt-2">Welcome! This plan is designed to help you achieve your goals with the equipment you have.</p>
+        </header>
+
+        <section id="overview" class="mb-8 md:mb-12 p-6 bg-white rounded-2xl shadow-lg">
+            <h2 class="text-3xl font-bold text-center mb-6 text-[#3C3633]">Client Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="p-6 bg-gray-50 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Your Profile</h3>
+                    <ul class="space-y-2 text-lg">
+                        <li class="flex justify-between"><strong>Age:</strong> <span>36</span></li>
+                        <li class="flex justify-between"><strong>Sex:</strong> <span>Male</span></li>
+                        <li class="flex justify-between"><strong>Height:</strong> <span>183 cm</span></li>
+                        <li class="flex justify-between"><strong>Weight:</strong> <span>108 kg</span></li>
+                    </ul>
+                </div>
+                <div class="p-6 bg-gray-50 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Your Goals</h3>
+                    <ul class="space-y-2 text-lg">
+                        <li class="flex justify-between items-center">
+                            <span class="font-bold">Primary:</span>
+                            <span class="text-right">🔥 Fat Loss & Weight Loss</span>
+                        </li>
+                        <li class="flex justify-between items-center">
+                            <span class="font-bold">Secondary:</span>
+                            <span class="text-right">💪 Build Muscle</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="p-6 bg-gray-50 rounded-lg">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Equipment</h3>
+                    <ul class="space-y-2 text-lg text-center">
+                        <li>Dumbbells</li>
+                        <li>HOIST Mi6 Functional Trainer</li>
+                        <li>Treadmill</li>
+                    </ul>
+                </div>
+                <div class="p-6 bg-gray-50 rounded-lg flex flex-col justify-center">
+                    <h3 class="text-xl font-semibold mb-4 text-center">Weekly Focus</h3>
+                    <div class="chart-container">
+                        <canvas id="weekSplitChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 p-6 bg-[#F0EBE3] rounded-lg">
+                <h3 class="text-xl font-semibold mb-3">A Note From Your Trainer:</h3>
+                <p class="text-gray-700">Consistency is your greatest tool. This plan is a roadmap. Focus on good form, listen to your body, and don't be afraid to start with light weights. The goal is to build good habits and improve 1% every day. You've got this!</p>
+            </div>
+        </section>
+
+        <section id="plan">
+            <h2 class="text-3xl font-bold text-center mb-6 text-[#3C3633]">Weekly Training Plan</h2>
+
+            <nav id="plan-nav" class="flex flex-wrap justify-center gap-2 mb-8">
+                <button data-day="day1" class="nav-button active text-lg font-semibold py-3 px-6 rounded-t-lg">Day 1: Full Body A</button>
+                <button data-day="day2" class="nav-button text-lg font-semibold py-3 px-6 rounded-t-lg">Day 2: Cardio (HIIT)</button>
+                <button data-day="day3" class="nav-button text-lg font-semibold py-3 px-6 rounded-t-lg">Day 3: Full Body B</button>
+                <button data-day="day4" class="nav-button text-lg font-semibold py-3 px-6 rounded-t-lg">Day 4: Cardio (LISS)</button>
+                <button data-day="day5" class="nav-button text-lg font-semibold py-3 px-6 rounded-t-lg">Day 5: Full Body C</button>
+            </nav>
+
+            <div id="plan-content" class="bg-white p-4 md:p-8 rounded-2xl shadow-lg min-h-[400px]">
+
+                <!-- Day 1 Content -->
+                <div id="day1Content" class="workout-day space-y-6">
+                    <h3 class="text-2xl font-semibold text-[#7A9D54]">Day 1: Full Body A (Dumbbell Focus)</h3>
+                    <p class="text-gray-600">Focus on controlling the weight and feeling the muscles work. This builds your foundation.</p>
+
+                    <div class="exercise-card p-4">
+                        <h4 class="text-xl font-semibold">Warm-up (10 min)</h4>
+                        <ul class="list-disc list-inside text-gray-700 mt-2">
+                            <li><strong>Treadmill:</strong> 5-7 minutes of light walking, progressing to a light jog.</li>
+                            <li><strong>Dynamic Stretches:</strong> Arm circles, leg swings, torso twists (30 seconds each).</li>
+                        </ul>
+                    </div>
+
+                    <!-- Exercise 1.1 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Goblet Squat</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 10-12</span>
+                            <button data-target="details-d1-ex1" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d1-ex1" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> 1 Dumbbell</p>
+                            <p><strong>Starting Weight:</strong> 10-12 kg</p>
+                            <p><strong>Rest:</strong> 60-90 seconds between sets.</p>
+                            <p><strong>Form:</strong> Hold one dumbbell vertically against your chest. Stand with feet shoulder-width apart. Push your hips back and bend your knees as if sitting in a chair. Go as deep as you can while keeping your chest up and back straight. Push through your heels to return to the start.</p>
+                            [Image of a Dumbbell Goblet Squat]
+                            <p><strong>Why:</strong> This is a fantastic compound exercise for your entire lower body (quads, glutes, hamstrings) and core.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 1.2 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Dumbbell Bench Press</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 10-12</span>
+                            <button data-target="details-d1-ex2" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d1-ex2" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> 2 Dumbbells, Bench (if no bench, do a floor press)</p>
+                            <p><strong>Starting Weight:</strong> 8-10 kg per dumbbell</p>
+                            <p><strong>Rest:</strong> 60-90 seconds between sets.</p>
+                            <p><strong>Form:</strong> Lie on a flat bench holding a dumbbell in each hand above your chest, palms facing forward. Lower the dumbbells slowly to the sides of your chest. Pause, then press them back up to the starting position.</p>
+                            [Image of a Dumbbell Bench Press]
+                            <p><strong>Why:</strong> Builds your chest (pectorals), shoulders (deltoids), and triceps.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 1.3 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Single Arm Dumbbell Row</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3 (per side)</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 10-12</span>
+                            <button data-target="details-d1-ex3" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d1-ex3" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> 1 Dumbbell, Bench</p>
+                            <p><strong>Starting Weight:</strong> 10-12 kg</p>
+                            <p><strong>Rest:</strong> 60 seconds between sets.</p>
+                            <p><strong>Form:</strong> Place one knee and the same-side hand on the bench. Keep your back flat. Hold the dumbbell in the opposite hand with your arm extended. Pull the dumbbell up towards your hip, squeezing your back muscle. Lower it slowly.</p>
+                            
+                            <p><strong>Why:</strong> Excellent for building a strong back (lats) and improving posture.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 1.4 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Plank</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 30-45 sec hold</span>
+                            <button data-target="details-d1-ex4" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d1-ex4" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> Bodyweight</p>
+                            <p><strong>Rest:</strong> 60 seconds between sets.</p>
+                            <p><strong>Form:</strong> Hold your body in a straight line from head to heels, supported on your forearms and toes. Brace your core and glutes. Do not let your hips sag.</p>
+                            [Image of a Plank]
+                            <p><strong>Why:</strong> Builds core strength and stability, which is essential for all other lifts.</p>
+                        </div>
+                    </div>
+
+                    <div class="exercise-card p-4">
+                        <h4 class="text-xl font-semibold">Cool-down (5-10 min)</h4>
+                        <ul class="list-disc list-inside text-gray-700 mt-2">
+                            <li><strong>Light Walk:</strong> 2-3 minutes on the treadmill.</li>
+                            <li><strong>Static Stretches:</strong> Hold stretches for your chest, back, and legs for 20-30 seconds each.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Day 2 Content -->
+                <div id="day2Content" class="workout-day hidden space-y-6">
+                    <h3 class="text-2xl font-semibold text-[#7A9D54]">Day 2: Cardio (HIIT)</h3>
+                    <p class="text-gray-600">High-Intensity Interval Training is amazing for burning fat in a short amount of time. Push yourself in the "Run" intervals!</p>
+                    <div class="exercise-card p-4">
+                        <h4 class="text-xl font-semibold">Treadmill HIIT Session (Total: 25-30 min)</h4>
+                        <ul class="list-decimal list-inside text-gray-700 mt-2 space-y-2">
+                            <li><strong>Warm-up (5 min):</strong> Brisk walk (e.g., 5-6 kph).</li>
+                            <li>
+                                <strong>HIIT Intervals (Repeat 10 times):</strong>
+                                <ul class="list-disc list-inside ml-4">
+                                    <li><strong>30 seconds RUN:</strong> Find a challenging pace (e.g., 8-10 kph). You should be breathing hard.</li>
+                                    <li><strong>60 seconds WALK:</strong> Slow down to a recovery walk (e.g., 4-5 kph).</li>
+                                </ul>
+                            </li>
+                            <li><strong>Cool-down (5-10 min):</strong> Slow walk, bringing your heart rate down.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Day 3 Content -->
+                <div id="day3Content" class="workout-day hidden space-y-6">
+                    <h3 class="text-2xl font-semibold text-[#7A9D54]">Day 3: Full Body B (Hoist Mi6 Focus)</h3>
+                    <p class="text-gray-600">Today we use the functional trainer. The cables provide constant tension. Remember, the weight on the stack is not the same as a dumbbell. Start light!</p>
+
+                    <div class="exercise-card p-4">
+                        <h4 class="text-xl font-semibold">Warm-up (10 min)</h4>
+                        <ul class="list-disc list-inside text-gray-700 mt-2">
+                            <li><strong>Treadmill:</strong> 5-7 minutes of light walking/jogging.</li>
+                            <li><strong>Dynamic Stretches:</strong> Arm circles, leg swings, torso twists.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Exercise 3.1 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Cable Chest Press</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 10-12</span>
+                            <button data-target="details-d3-ex1" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d3-ex1" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> Hoist Mi6 (Dual Pulleys)</p>
+                            <p><strong>Starting Weight:</strong> 20-30 lbs *on each stack*.</p>
+                            <p><strong>Rest:</strong> 60-90 seconds.</p>
+                            <p><strong>Form:</strong> Set both pulleys to chest height. Grab the handles and step forward into a staggered stance. With your chest up, press the handles forward and together until your arms are straight. Squeeze your chest. Slowly return to the start.</p>
+                            
+                            <p><strong>Why:</strong> Builds the chest and shoulders with constant tension from the cables.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 3.2 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Seated Cable Row</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 10-12</span>
+                            <button data-target="details-d3-ex2" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d3-ex2" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> Hoist Mi6, Bench (if possible)</p>
+                            <p><strong>Starting Weight:</strong> 30-40 lbs *on each stack* (if using both) or 40-50 lbs total.</p>
+                            <p><strong>Rest:</strong> 60-90 seconds.</p>
+                            <p><strong>Form:</strong> Sit with your back straight. Grab the handles with arms extended. Pull the handles towards your lower ribs, squeezing your shoulder blades together. Keep your chest up. Slowly return to the start.</p>
+                            
+                            <p><strong>Why:</strong> Builds the mid-back (lats, rhomboids) for thickness and posture.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 3.3 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Cable Bicep Curl</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 12-15</span>
+                            <button data-target="details-d3-ex3" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d3-ex3" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> Hoist Mi6 (Dual Pulleys, low)</p>
+                            <p><strong>Starting Weight:</strong> 10-15 lbs *on each stack*.</p>
+                            <p><strong>Rest:</strong> 60 seconds.</p>
+                            <p><strong>Form:</strong> Set both pulleys to the lowest setting. Grab the handles. Keeping your elbows pinned to your sides, curl the handles up towards your shoulders. Squeeze your biceps at the top, then slowly lower.</p>
+                            
+                            <p><strong>Why:</strong> Isolates the bicep muscles.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 3.4 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Cable Tricep Pushdown</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 12-15</span>
+                            <button data-target="details-d3-ex4" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d3-ex4" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> Hoist Mi6 (High pulley), Rope or Bar attachment</p>
+                            <p><strong>Starting Weight:</strong> 20-30 lbs *total stack weight*.</p>
+                            <p><strong>Rest:</strong> 60 seconds.</p>
+                            <p><strong>Form:</strong> Attach a rope or straight bar to a high pulley. Grab the attachment with palms facing down. Keep your elbows tucked into your sides. Push the bar down until your arms are fully extended. Squeeze your triceps. Slowly return.</p>
+                            
+                            <p><strong>Why:</strong> Isolates the tricep muscles (back of the arm).</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 3.5 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Cable Crunch</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 15-20</span>
+                            <button data-target="details-d3-ex5" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d3-ex5" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> Hoist Mi6 (High pulley), Rope attachment</p>
+                            <p><strong>Starting Weight:</strong> 25-35 lbs *total stack weight*.</p>
+                            <p><strong>Rest:</strong> 60 seconds.</p>
+                            <p><strong>Form:</strong> Kneel facing the machine, holding the rope handles on either side of your head. Crunch forward, bringing your elbows towards your knees, rounding your back and squeezing your abs. Slowly return up.</p>
+                            
+                            <p><strong>Why:</strong> Adds resistance to your abdominal training.</p>
+                        </div>
+                    </div>
+
+                    <div class="exercise-card p-4">
+                        <h4 class="text-xl font-semibold">Cool-down (5-10 min)</h4>
+                        <ul class="list-disc list-inside text-gray-700 mt-2">
+                            <li><strong>Light Walk:</strong> 2-3 minutes.</li>
+                            <li><strong>Static Stretches:</strong> Chest, back, arms, and abs.</li>
+                        </ul>
+                    </div>
+
+                </div>
+
+                <!-- Day 4 Content -->
+                <div id="day4Content" class="workout-day hidden space-y-6">
+                    <h3 class="text-2xl font-semibold text-[#7A9D54]">Day 4: Cardio (LISS)</h3>
+                    <p class="text-gray-600">Low-Intensity Steady State. This is about building your aerobic base and burning calories without stressing your body too much. It's great for active recovery.</p>
+                    <div class="exercise-card p-4">
+                        <h4 class="text-xl font-semibold">Treadmill LISS Session (Total: 40-50 min)</h4>
+                        <ul class="list-decimal list-inside text-gray-700 mt-2 space-y-2">
+                            <li><strong>Warm-up (5 min):</strong> Slow walk (e.g., 4-5 kph).</li>
+                            <li>
+                                <strong>Steady State (30-40 min):</strong>
+                                <ul class="list-disc list-inside ml-4">
+                                    <li><strong>Speed:</strong> 5.5 - 6.5 kph (a very brisk walk).</li>
+                                    <li><strong>Incline:</strong> 3.0 - 5.0 %</li>
+                                    <li>The goal is to keep your heart rate elevated but be able to hold a conversation.</li>
+                                </ul>
+                            </li>
+                            <li><strong>Cool-down (5 min):</strong> Slow walk, no incline.</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Day 5 Content -->
+                <div id="day5Content" class="workout-day hidden space-y-6">
+                    <h3 class="text-2xl font-semibold text-[#7A9D54]">Day 5: Full Body C (Hybrid)</h3>
+                    <p class="text-gray-600">We're mixing it up today, using everything. The Dumbbell Thruster is a big metabolic exercise—perfect for finishing the week strong!</p>
+
+                    <div class="exercise-card p-4">
+                        <h4 class="text-xl font-semibold">Warm-up (10 min)</h4>
+                        <ul class="list-disc list-inside text-gray-700 mt-2">
+                            <li><strong>Treadmill:</strong> 5-7 minutes of light jogging.</li>
+                            <li><strong>Dynamic Stretches:</strong> Arm circles, leg swings, torso twists.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Exercise 5.1 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Dumbbell Lunge</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3 (per side)</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 10-12</span>
+                            <button data-target="details-d5-ex1" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d5-ex1" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> 2 Dumbbells</p>
+                            <p><strong>Starting Weight:</strong> 5-8 kg per dumbbell</p>
+                            <p><strong>Rest:</strong> 60 seconds.</p>
+                            <p><strong>Form:</strong> Hold a dumbbell in each hand. Step forward with one leg, lowering your hips until both knees are bent at a 90-degree angle. Your front knee should be above your ankle, and your back knee should not touch the ground. Push off your front foot to return to the start. Alternate legs or do all reps on one side before switching.</p>
+                            [Image of a Dumbbell Lunge]
+                            <p><strong>Why:</strong> Works the quads, glutes, and hamstrings one leg at a time, improving balance.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 5.2 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Lat Pulldown (Mi6)</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 10-12</span>
+                            <button data-target="details-d5-ex2" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d5-ex2" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> Hoist Mi6 (High Pulleys), Lat Bar attachment or Dual Handles</p>
+                            <p><strong>Starting Weight:</strong> 40-50 lbs *total stack weight*.</p>
+                            <p><strong>Rest:</strong> 60-90 seconds.</p>
+                            <p><strong>Form:</strong> Sit or kneel facing the machine. Grab the bar with a wide grip. Keeping your chest up, pull the bar down to your upper chest, squeezing your shoulder blades together. Slowly return the bar to the starting position.</p>
+                            
+                            <p><strong>Why:</strong> The "vertical pull" equivalent of a pull-up. Builds a wide back.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 5.3 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Dumbbell Thruster</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 10</span>
+                            <button data-target="details-d5-ex3" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d5-ex3" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> 2 Dumbbells</p>
+                            <p><strong>Starting Weight:</strong> 5-8 kg per dumbbell</p>
+                            <p><strong>Rest:</strong> 90 seconds (this one is tough!).</p>
+                            <p><strong>Form:</strong> Hold two dumbbells at your shoulders. Perform a full squat (like the Goblet Squat). As you stand up, use the momentum to press the dumbbells overhead. Lower the dumbbells back to your shoulders and immediately begin the next squat. It's one fluid motion.</p>
+                            [Image of a Dumbbell Thruster]
+                            <p><strong>Why:</strong> A total-body metabolic exercise. It hits your legs, core, shoulders, and triceps, and sky-rockets your heart rate. Amazing for fat loss.</p>
+                        </div>
+                    </div>
+
+                    <!-- Exercise 5.4 -->
+                    <div class="exercise-card p-4">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 items-center">
+                            <h4 class="text-xl font-semibold col-span-2 md:col-span-1">Russian Twist</h4>
+                            <span class="text-gray-700"><strong>Sets:</strong> 3</span>
+                            <span class="text-gray-700"><strong>Reps:</strong> 15-20 (total)</span>
+                            <button data-target="details-d5-ex4" class="details-button text-sm font-medium py-2 px-4 rounded-lg w-full">Show Details</button>
+                        </div>
+                        <div id="details-d5-ex4" class="details-content hidden mt-4 p-4 rounded-lg space-y-3">
+                            <p><strong>Equipment:</strong> Bodyweight or 5kg Dumbbell</p>
+                            <p><strong>Rest:</strong> 60 seconds.</p>
+                            <p><strong>Form:</strong> Sit on the floor with your knees bent and feet slightly off the ground. Lean back to engage your core. Clasp your hands together (or hold the dumbbell) and twist your torso from side to side, touching your hands to the floor on each side.</p>
+                            <p><strong>Why:</strong> Works the obliques (side abs) and core rotation.</p>
+                        </div>
+                    </div>
+
+                    <div class="exercise-card p-4">
+                        <h4 class="text-xl font-semibold">Cool-down (5-10 min)</h4>
+                        <ul class="list-disc list-inside text-gray-700 mt-2">
+                            <li><strong>Light Walk:</strong> 2-3 minutes.</li>
+                            <li><strong>Static Stretches:</strong> Full body.</li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <section id="progression" class="mt-8 md:mt-12 p-6 bg-white rounded-2xl shadow-lg">
+            <h2 class="text-3xl font-bold text-center mb-6 text-[#3C3633]">How to Progress (Read This!)</h2>
+            <div class="space-y-4 text-gray-700">
+                <p>This plan is your starting point. The key to results is <strong class="text-[#7A9D54]">Progressive Overload</strong>. This means gradually making your workouts harder over time. Here's how:</p>
+                <ul class="list-disc list-inside space-y-2">
+                    <li><strong>Weight:</strong> This is the simplest way. Once you can complete all 3 sets of an exercise at the top end of the rep range (e.g., 12 reps) with good form, increase the weight by the smallest amount possible (e.g., add 2.5kg or move to the next dumbbell). In the next workout, you might only get 8-10 reps, and that's perfect! Work your way back up to 12.</li>
+                    <li><strong>Reps:</strong> If you can't increase the weight, add one more rep to each set.</li>
+                    <li><strong>Sets:</strong> You can add a 4th set to an exercise.</li>
+                    <li><strong>Cardio:</strong> For HIIT, add 1-2 more intervals. For LISS, increase the incline (e.g., 5.0% to 6.0%) or the duration (e.g., 30 min to 35 min).</li>
+                </ul>
+                <p class="font-semibold text-center mt-4">Listen to your body. "Good form" is more important than heavy weight, especially now.</p>
+            </div>
+        </section>
+
+        <section id="principles" class="mt-8 md:mt-12 p-6 bg-[#F0EBE3] rounded-2xl">
+            <h2 class="text-3xl font-bold text-center mb-6 text-[#3C3633]">The Other 23 Hours</h2>
+            <p class="text-center text-gray-600 mb-6">Your 1 hour in the gym is only part of the equation. Your primary goal of fat loss is <strong class="text-red-600">HEAVILY</strong> influenced by nutrition.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold mb-3 text-center">🍎 Nutrition</h3>
+                    <p>You don't need a crazy diet. Start simple: Focus on eating whole foods. Prioritize protein (chicken, fish, eggs, legumes) at every meal. This will help you feel full and build muscle. Reduce sugary drinks and processed snacks. To lose weight, you must be in a slight calorie deficit.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold mb-3 text-center">💧 Hydration</h3>
+                    <p>Drink water. A lot of it. Aim for 2-3 liters per day, plus more during your workouts. Being hydrated boosts your metabolism, improves performance, and helps your body recover. Carry a water bottle with you everywhere.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm">
+                    <h3 class="text-xl font-semibold mb-3 text-center">😴 Rest & Recovery</h3>
+                    <p>Your muscles are built while you rest, not while you train. Aim for 7-8 hours of quality sleep per night. Your two rest days are just as important as your training days. This is when your body repairs and gets stronger.</p>
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            const weekSplitCtx = document.getElementById('weekSplitChart').getContext('2d');
+            new Chart(weekSplitCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Full Body Strength', 'Cardio Focus'],
+                    datasets: [{
+                        label: 'Workouts per Week',
+                        data: [3, 2],
+                        backgroundColor: [
+                            '#7A9D54', 
+                            '#A8B5A0'  
+                        ],
+                        borderColor: '#FDFBF6',
+                        borderWidth: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                font: {
+                                    size: 14,
+                                    family: 'Inter'
+                                }
+                            }
+                        },
+                        tooltip: {
+                            titleFont: {
+                                size: 14,
+                                family: 'Inter'
+                            },
+                            bodyFont: {
+                                size: 12,
+                                family: 'Inter'
+                            }
+                        }
+                    }
+                }
+            });
+
+            const planNav = document.getElementById('plan-nav');
+            const navButtons = document.querySelectorAll('.nav-button');
+            const workoutDays = document.querySelectorAll('.workout-day');
+            
+            planNav.addEventListener('click', (e) => {
+                const targetButton = e.target.closest('button');
+                if (!targetButton) return;
+
+                const day = targetButton.dataset.day;
+                if (!day) return;
+
+                navButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                targetButton.classList.add('active');
+
+                workoutDays.forEach(dayContent => {
+                    if (dayContent.id === `${day}Content`) {
+                        dayContent.classList.remove('hidden');
+                    } else {
+                        dayContent.classList.add('hidden');
+                    }
+                });
+            });
+
+            const planContent = document.getElementById('plan-content');
+            planContent.addEventListener('click', (e) => {
+                const targetButton = e.target.closest('button');
+                if (!targetButton || !targetButton.dataset.target) return;
+
+                const targetId = targetButton.dataset.target;
+                const detailsContent = document.getElementById(targetId);
+
+                if (detailsContent) {
+                    const isHidden = detailsContent.classList.contains('hidden');
+                    detailsContent.classList.toggle('hidden');
+                    targetButton.textContent = isHidden ? 'Hide Details' : 'Show Details';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
